@@ -2,6 +2,7 @@
 
 # Windowed Snake — requires: gem install glimmer-dsl-libui
 # Run: ruby rubysnake_gui.rb
+# Cross-platform compatible (Windows, macOS, Linux)
 
 require 'glimmer-dsl-libui'
 
@@ -66,12 +67,21 @@ class RubysnakeGui
   end
 
   def random_food
-    loop do
+    max_attempts = 100
+    max_attempts.times do
       fx = rand(1...GRID_W - 1)
       fy = rand(1...GRID_H - 1)
       p = [fx, fy]
       return p unless @snake.include?(p)
     end
+    # Fallback: find first available cell if random search fails
+    (1...GRID_W - 1).each do |fx|
+      (1...GRID_H - 1).each do |fy|
+        return [fx, fy] unless @snake.include?([fx, fy])
+      end
+    end
+    # Last resort: return random position (should rarely happen)
+    [rand(1...GRID_W - 1), rand(1...GRID_H - 1)]
   end
 
   def grid_origin
@@ -108,6 +118,17 @@ class RubysnakeGui
     end
   end
 
+  def system_font_family
+    case RUBY_PLATFORM
+    when /darwin/
+      'SF Pro Display'  # macOS
+    when /linux/
+      'Ubuntu'         # Linux - common fallback
+    else
+      'Segoe UI'       # Windows
+    end
+  end
+
   def build_ui
     @main = window('Ruby Snake') {
       resizable false
@@ -136,7 +157,8 @@ class RubysnakeGui
             else
               dir = key_to_dir(e)
               if dir
-                @key_queue << dir
+                # Limit key queue to prevent buildup during lag
+                @key_queue << dir if @key_queue.length < 3
                 true
               else
                 false
@@ -216,7 +238,7 @@ class RubysnakeGui
     text(ox, 6, aw - ox * 2) {
       string("Ruby Snake  ·  Score: #{@score}\nW A S D or arrow keys") {
         color r: 238, g: 244, b: 255, a: 1.0
-        font family: 'Segoe UI', size: 14, weight: :bold
+        font family: system_font_family, size: 14, weight: :bold
       }
     }
 
@@ -228,21 +250,21 @@ class RubysnakeGui
       align :center
       string('GAME OVER') {
         color r: 255, g: 82, b: 82, a: 1.0
-        font family: 'Segoe UI', size: 28, weight: :bold
+        font family: system_font_family, size: 28, weight: :bold
       }
     }
     text(0, ah / 2 - 20, aw) {
       align :center
       string("Final score: #{@score}") {
         color r: 255, g: 214, b: 120, a: 1.0
-        font family: 'Segoe UI', size: 18, weight: :medium
+        font family: system_font_family, size: 18, weight: :medium
       }
     }
     text(0, ah / 2 + 28, aw) {
       align :center
       string('Y  Play again          N  Exit') {
         color r: 220, g: 230, b: 245, a: 1.0
-        font family: 'Segoe UI', size: 14
+        font family: system_font_family, size: 14
       }
     }
   end
